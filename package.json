@@ -1,0 +1,19 @@
+{
+  "name": "readback",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Read Claude and Codex answers as local formatted Markdown pages",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "read": "node src/cli.js",
+    "test": "node --test",
+    "install-skills": "node scripts/install-skills.js"
+  },
+  "dependencies": {
+    "highlight.js": "^11.12.0",
+    "markdown-it": "^15.0.2"
+  }
+}

@@ -1,0 +1,78 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --text: #292c31;
+  --muted: #767973;
+  --line: #deded6;
+  --surface: #f0f0ea;
+  --accent: #376653;
+  --keyword: #975072;
+  --string: #356e52;
+  --number: #986024;
+  --function: #3d639d;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 17px;
+  background: var(--bg);
+  color: var(--text);
+}
+* { box-sizing: border-box; }
+body { max-width: 860px; margin: 0 auto; padding: 0 48px; }
+.masthead { display: flex; justify-content: space-between; align-items: center; padding: 36px 0 24px; border-bottom: 1px solid var(--line); }
+.brand { font-size: 15px; font-weight: 650; letter-spacing: -.3px; display: flex; align-items: center; gap: 7px; }
+.brand-dot { height: 6px; width: 6px; border-radius: 50%; background: var(--accent); }
+.reading-time { font-size: 12px; color: var(--muted); }
+main { padding: 32px 0 40px; }
+article { line-height: 1.8; overflow-wrap: anywhere; }
+article > :first-child { margin-top: 0; }
+article > :last-child { margin-bottom: 0; }
+h1, h2, h3, h4, h5, h6 { line-height: 1.3; letter-spacing: -.025em; margin: 1.7em 0 .65em; font-weight: 650; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.12rem; }
+h4, h5, h6 { font-size: 1rem; }
+p, ul, ol, blockquote { margin: 0 0 1.15em; }
+ul, ol { padding-left: 1.55em; }
+li { padding-left: .2em; margin: .25em 0; }
+li > ul, li > ol { margin-bottom: .4em; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+strong { font-weight: 650; }
+blockquote { border-left: 3px solid var(--accent); padding: .1em 0 .1em 1.1em; color: var(--muted); }
+blockquote > :last-child { margin-bottom: 0; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .83em; background: var(--surface); padding: .15em .35em; border-radius: 4px; }
+pre { max-width: 100%; overflow-x: auto; padding: 20px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; line-height: 1.65; margin: 1.4em 0; tab-size: 4; }
+pre code { padding: 0; font-size: .8rem; background: transparent; overflow-wrap: normal; }
+.table-scroll { overflow-x: auto; margin: 1.4em 0; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .87rem; line-height: 1.55; }
+th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); min-width: 140px; overflow-wrap: normal; }
+th { font-weight: 650; background: var(--surface); }
+tr:last-child td { border-bottom: 0; }
+footer { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); border-top: 1px solid var(--line); padding: 20px 0 40px; font-size: 12px; }
+.hljs-comment, .hljs-quote { color: var(--muted); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-type { color: var(--keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute { color: var(--string); }
+.hljs-number, .hljs-symbol, .hljs-bullet { color: var(--number); }
+.hljs-title, .hljs-built_in, .hljs-section, .hljs-attr { color: var(--function); }
+.hljs-deletion { color: #b74747; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: bold; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1c201e; --text: #e0e5df; --muted: #a0aaa2; --line: #3b443e; --surface: #272e29; --accent: #9cccaf; --keyword: #db9ec0; --string: #a5cf9b; --number: #deb985; --function: #a5bfdf; }
+}
+@media (max-width: 600px) {
+  :root { font-size: 16px; }
+  body { padding: 0 22px; }
+  .masthead { padding-top: 24px; }
+  main { padding-top: 26px; }
+  h1 { font-size: 1.7rem; }
+  pre { padding: 16px; }
+}
+@media print {
+  :root { color-scheme: light; --bg: white; --text: black; --muted: #555; --line: #ccc; --surface: #f7f7f7; }
+  body { max-width: none; padding: 0; }
+  .masthead, footer { display: none; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .table-scroll { overflow: visible; }
+}

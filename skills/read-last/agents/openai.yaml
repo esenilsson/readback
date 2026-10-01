@@ -1,0 +1,5 @@
+interface:
+  display_name: "Read last answer"
+  short_description: "Open the previous answer in a local Markdown reader"
+policy:
+  allow_implicit_invocation: false
