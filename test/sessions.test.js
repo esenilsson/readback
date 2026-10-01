@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { parseJSONL, parseCodex, parseClaude, discoverSessions, selectSession } from '../src/sessions.js';
+import { parseJSONL, parseCodex, parseClaude, discoverSessions, selectSession, sessionOptions } from '../src/sessions.js';
 import { openGlow } from '../src/cli.js';
 
 const timestamp = '2026-10-01T08:00:00Z';
@@ -102,14 +102,14 @@ test('discovery honors custom homes and excludes nested Claude subagents', async
   const claude = jsonl([claudeRow('a', null, [textBlock('Claude answer')])]);
   await writeFile(join(claudeDir, 'session.jsonl'), claude);
   await writeFile(join(claudeDir, 'session/subagents/agent-1.jsonl'), claude);
-  const env = { ...process.env, CODEX_HOME: join(root, 'codex'), CLAUDE_CONFIG_DIR: join(root, 'claude') };
+  const env = { ...process.env, CODEX_THREAD_ID: '', CODEX_SESSION_ID: '', CLAUDE_CODE_SESSION_ID: '', CODEX_HOME: join(root, 'codex'), CLAUDE_CONFIG_DIR: join(root, 'claude') };
   const sessions = await discoverSessions({ env });
   assert.equal(sessions.length, 2);
   assert.deepEqual(new Set(sessions.map(s => s.tool)), new Set(['codex', 'claude']));
 
   // Exercise the real CLI with isolated synthetic transcripts; no model executable is involved.
   const cli = fileURLToPath(new URL('../src/cli.js', import.meta.url));
-  const run = args => spawnSync(process.execPath, [cli, ...args], { env, encoding: 'utf8' });
+  const run = (args, agentEnv = {}) => spawnSync(process.execPath, [cli, ...args], { env: { ...env, ...agentEnv }, encoding: 'utf8' });
   const listing = run(['--list']);
   assert.equal(listing.status, 0, listing.stderr);
   assert.match(listing.stdout, /claude-123/);
@@ -121,6 +121,21 @@ test('discovery honors custom homes and excludes nested Claude subagents', async
   assert.equal(await readFile(path, 'utf8'), 'Claude answer');
   assert.equal(run(['--session', 'claude-123', '--latest']).status, 1);
   assert.equal(run(['--viewer', 'unknown']).status, 1);
+  for (const [agentEnv, viewer, expected] of [
+    [{ CODEX_THREAD_ID: 'codex-123' }, 'browser', /Exact/],
+    [{ CODEX_SESSION_ID: 'codex-123' }, 'glow', /Exact/],
+    [{ CLAUDE_CODE_SESSION_ID: 'claude-123' }, 'glow', /Claude answer/],
+  ]) {
+    const result = run([viewer, '--no-open'], agentEnv);
+    assert.equal(result.status, 0, result.stderr);
+    const path = result.stdout.trim();
+    t.after(() => rm(join(path, '..'), { recursive: true, force: true }));
+    assert.ok(path.endsWith(viewer === 'browser' ? '.html' : '.md'));
+    assert.match(await readFile(path, 'utf8'), expected);
+  }
+  assert.equal(run(['--no-open'], { CODEX_THREAD_ID: 'codex' }).status, 1);
+  assert.equal(run(['--no-open'], { CODEX_THREAD_ID: 'missing' }).status, 1);
+
 });
 
 test('Glow receives a literal local filename, pages only interactively, and has a clear missing dependency error', () => {
@@ -159,4 +174,19 @@ test('installed shell commands dispatch to both viewers and preserve argument qu
   assert.equal(refused.status, 1);
   assert.match(refused.stderr, /Refusing to overwrite/);
   assert.match(await readFile(join(bin, 'readback'), 'utf8'), /unrelated/);
+});
+
+test('agent detection respects explicit selectors and avoids guessing between nested agents', () => {
+  const env = { CODEX_THREAD_ID: 'current', CODEX_SESSION_ID: 'legacy' };
+  assert.equal(sessionOptions({}, env).session, 'current');
+  assert.equal(sessionOptions({}, { CODEX_SESSION_ID: 'legacy' }).session, 'legacy');
+  assert.deepEqual(sessionOptions({}, {}), {});
+  for (const options of [{ session: 'chosen' }, { latest: true }, { cwd: '/chosen' }, { transcript: 'file' }, { list: true }]) {
+    assert.deepEqual(sessionOptions(options, env), options);
+  }
+  const nested = { ...env, CLAUDE_CODE_SESSION_ID: 'claude' };
+  assert.throws(() => sessionOptions({}, nested), /Both Codex and Claude/);
+  assert.equal(sessionOptions({ tool: 'claude' }, nested).session, 'claude');
+  assert.equal(sessionOptions({ tool: 'codex' }, nested).session, 'current');
+  assert.deepEqual(sessionOptions({ tool: 'claude' }, env), { tool: 'claude' });
 });

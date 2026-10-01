@@ -5,14 +5,14 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { renderMarkdown } from './reader.js';
-import { discoverSessions, describeSessions, readTranscript, selectSession } from './sessions.js';
+import { discoverSessions, describeSessions, readTranscript, selectSession, sessionOptions } from './sessions.js';
 
-const help = `Usage: readback [options] [answer.md | -]
+const help = `Usage: readback [browser|glow] [options] [answer.md | -]
        read-later-browser [options]
        read-later-glow [options]
 
 Read the last completed answer directly from local Claude or Codex transcripts.
-With no selector, use the single session matching the current project.
+With no selector, detect the calling agent session, then fall back to the current project.
 
 --list              List local sessions without showing their answer text.
 --session <id>      Select an exact session ID or unique prefix.
@@ -53,10 +53,11 @@ export function openGlow(path, launch = spawnSync, interactive = Boolean(process
 }
 
 export async function main(args = process.argv.slice(2)) {
+  if (['browser', 'glow'].includes(args[0])) args = ['--viewer', args[0], ...args.slice(1)];
   let noOpen = false;
   let positionalOnly = false;
   const files = [];
-  const options = { viewer: 'browser' };
+  let options = { viewer: 'browser' };
   const values = { '--session': 'session', '--tool': 'tool', '--cwd': 'cwd', '--transcript': 'transcript', '--viewer': 'viewer' };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -90,6 +91,7 @@ export async function main(args = process.argv.slice(2)) {
   } else if (files.length) {
     markdown = await readFile(resolve(files[0]), 'utf8');
   } else {
+    options = sessionOptions(options);
     let session;
     if (options.transcript) {
       session = await readTranscript(resolve(options.transcript), options.tool);

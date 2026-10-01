@@ -143,11 +143,22 @@ export function describeSessions(sessions) {
   return sessions.map(s => `${s.tool.padEnd(6)}  ${s.id}  ${s.lastAnswer?.timestamp || 'no completed answer'}  ${s.cwd || '(unknown project)'}`).join('\n');
 }
 
-export function selectSession(sessions, { session, tool, latest = false, cwd = process.cwd() } = {}) {
+// Explicit selectors always override the calling agent's environment.
+export function sessionOptions(options, env = process.env) {
+  if (['session', 'latest', 'cwd', 'transcript', 'list'].some(key => options[key])) return options;
+  const candidates = [
+    { tool: 'codex', session: env.CODEX_THREAD_ID || env.CODEX_SESSION_ID },
+    { tool: 'claude', session: env.CLAUDE_CODE_SESSION_ID },
+  ].filter(candidate => candidate.session && (!options.tool || candidate.tool === options.tool));
+  if (candidates.length > 1) throw new Error('Both Codex and Claude session IDs are present. Choose --tool codex or --tool claude.');
+  return candidates.length ? { ...options, ...candidates[0], exactSession: true } : options;
+}
+
+export function selectSession(sessions, { session, tool, exactSession = false, latest = false, cwd = process.cwd() } = {}) {
   let matches = sessions.filter(s => !tool || s.tool === tool);
   if (session) {
     const exact = matches.filter(s => s.id === session);
-    matches = exact.length ? exact : matches.filter(s => s.id.startsWith(session));
+    matches = exact.length || exactSession ? exact : matches.filter(s => s.id.startsWith(session));
   } else if (latest) {
     matches = matches.filter(s => s.lastAnswer).sort((a, b) => (Date.parse(b.lastAnswer.timestamp) || 0) - (Date.parse(a.lastAnswer.timestamp) || 0)).slice(0, 1);
   } else {

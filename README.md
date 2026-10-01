@@ -20,14 +20,27 @@ The installer creates `readback`, `read-later-browser`, and `read-later-glow` in
 
 ## Read the last answer
 
-Run these in a **normal terminal shell**, such as another terminal tab, from the same directory where you started the agent:
+Inside Codex CLI or Claude Code, type:
+
+```sh
+!readback        # Browser
+!readback glow   # Glow
+```
+
+Readback automatically selects the calling session using `CODEX_THREAD_ID` (or `CODEX_SESSION_ID`) for Codex and [`CLAUDE_CODE_SESSION_ID`](https://code.claude.com/docs/en/env-vars) for Claude Code. No session ID or tool flag is needed when the agent supplies its session environment. Explicit selectors below override detection. Older agent versions without these variables fall back to matching the current directory; ambiguous matches require a selector. If both agents' variables are inherited, specify `--tool codex` or `--tool claude`.
+
+Readback itself makes no model calls. Claude Code can automatically respond after a `!` command; set `"respondToBashCommands": false` in `~/.claude/settings.json` to disable that extra model turn ([Claude shell-mode docs](https://code.claude.com/docs/en/interactive-mode#shell-mode-with-prefix)). Command output still enters the conversation context. For no additional agent context or model usage, run Readback in a separate terminal.
+
+Glow uses a pager in an interactive terminal (`q` to exit). Inside an agent's captured shell, it prints the rendered Markdown without a pager. Use the browser option for a separate reading window.
+
+The original commands also work in a normal terminal shell, from the directory where you started the agent:
 
 ```sh
 read-later-browser
 read-later-glow
 ```
 
-Both select the last completed answer from the session matching that directory. `readback` is an alias for the browser workflow. Glow uses a pager when run interactively; press `q` to exit.
+Without an agent session environment, both select the last completed answer from the session matching that directory. `readback` defaults to the browser; `readback browser` is also supported.
 
 If multiple sessions match, Readback lists the choices instead of guessing. You can also list all sessions or explicitly choose the latest completed answer across projects:
 
@@ -39,7 +52,7 @@ read-later-browser --latest --tool codex
 read-later-glow --latest --tool claude
 ```
 
-Session IDs accept unique prefixes. `--tool` restricts discovery to `claude` or `codex`. `--latest` selects by the completed answer's timestamp, not by the transcript file's modification time. Use `--cwd /path/to/project` to match another directory, or `--transcript /path/to/session.jsonl` to read a known transcript directly. A moved or renamed project may require `--session` because the transcript still records the original directory.
+Session IDs accept unique prefixes. `--tool` restricts discovery to `claude` or `codex`. `--latest` selects by the completed answer's timestamp, not by the transcript file's modification time. Use `--cwd /path/to/project` to match another directory, or `--transcript /path/to/session.jsonl` to read a known transcript directly. Outside the agent, a moved or renamed project may require `--session` because the transcript still records the original directory.
 
 ### Files and generated previews
 
@@ -49,6 +62,8 @@ read-later-glow answer.md
 readback --session <session-id> --no-open
 readback - < answer.md
 ```
+
+Use `readback -- glow` to open a file literally named `glow`.
 
 `--no-open` saves the output without launching a viewer. Each invocation writes `answer.md` and `answer.html` in a private `readback-*` directory under the system temporary directory. The output path is printed; previews remain until those temporary files are removed. There is no background server or automatic cleanup. For use without installation, replace `readback` with `node src/cli.js`; choose Glow with `--viewer glow`.
 
