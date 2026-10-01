@@ -1,20 +1,18 @@
 ---
 name: read-last
-description: Open the previous completed assistant answer as a formatted Markdown page in the local browser when the user requests read-last or asks to read that answer in the reader.
+description: Open a completed answer from a local session transcript in the browser when the user explicitly invokes read-last. For zero model tokens, use the Readback shell commands instead.
 ---
 
 # Read last answer
 
-Use the most recent completed assistant answer before this request in the current conversation. Preserve its wording, Markdown, links, tables, and code blocks. Do not summarize, improve, regenerate, or include tool output, progress updates, or this skill's instructions. If the answer is missing or only a summary remains in context, say it is unavailable and ask the user to supply the text; do not reconstruct it.
+This skill invocation already uses a model turn. The standalone shell commands `read-later-browser` and `read-later-glow` do not. Use Readback's transcript reader instead of copying or regenerating the answer.
 
-Pass the answer as UTF-8 Markdown to the installed reader through stdin:
+Identify the current session from an explicitly available session ID or transcript path in the runtime context. If it is unavailable, list sessions with the command below plus `--list` and match the current tool and working directory. If multiple sessions match, ask which one to use. Never choose the newest session across projects implicitly.
 
 ```sh
-__READER_COMMAND__ - <<'READER_MARKDOWN_EOF'
-<previous answer, without an extra enclosing code fence>
-READER_MARKDOWN_EOF
+__READER_COMMAND__ --session '<current session ID>'
 ```
 
-The quoted heredoc prevents backticks, dollar signs, and shell commands in the answer from executing. Choose a different delimiter if the answer contains a line matching it. When using a shell tool, send real newlines, not literal escaped `\n` characters. Alternatively write the exact answer to a temporary file with a file-writing tool and pass its quoted absolute path to the same command.
+Alternatively use `--transcript '<absolute JSONL path>'`. Pass paths and IDs as literal, quoted arguments. If the transcript is unavailable or has no completed answer, report that; do not reconstruct the answer from context.
 
 The reader saves Markdown and HTML in a private temporary directory, prints the HTML path, and opens the default browser. Follow the session's normal execution permissions; if opening the browser requires tool approval, use that approval flow. If launch fails, provide the printed HTML path. Respond briefly with the preview link, without repeating the answer.

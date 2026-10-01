@@ -10,7 +10,8 @@
   "scripts": {
     "read": "node src/cli.js",
     "test": "node --test",
-    "install-skills": "node scripts/install-skills.js"
+    "install-skills": "node scripts/install-skills.js",
+    "install-cli": "node scripts/install-cli.js"
   },
   "dependencies": {
     "highlight.js": "^11.12.0",

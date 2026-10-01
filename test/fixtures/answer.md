@@ -12,10 +12,10 @@ The reader turns long terminal responses into a page you can comfortably read. *
 
 ## Compare the options
 
-| Tool | Command | Result |
+| Viewer | Shell command | Result |
 | --- | --- | --- |
-| Claude Code | `/read-last` | Open the previous answer |
-| Codex | `$read-last` | Open the previous answer |
+| Browser | `read-later-browser` | Formatted local page |
+| Glow | `read-later-glow` | Formatted terminal view |
 
 ## An example
 

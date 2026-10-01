@@ -14,11 +14,18 @@ const targets = [
   { directory: join(codexRoot, 'skills/read-last'), skill, ui },
   { directory: join(homedir(), '.claude/skills/read-last'), skill: skill.replace('name: read-last\n', 'name: read-last\ndisable-model-invocation: true\n') },
 ];
+const update = process.argv.slice(2).includes('--update');
+if (process.argv.slice(2).some(arg => arg !== '--update')) throw new Error('Only --update is supported.');
 
 // Check both destinations before writing; never overwrite another skill.
 for (const { directory } of targets) {
   try {
     await access(directory);
+    if (update) {
+      const existing = await readFile(join(directory, 'SKILL.md'), 'utf8');
+      if (existing.includes(command)) continue;
+      throw new Error(`Refusing to update a skill not installed from this checkout: ${directory}`);
+    }
     throw new Error(`Skill already exists: ${directory}. Review it before replacing it.`);
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
@@ -26,10 +33,10 @@ for (const { directory } of targets) {
 }
 for (const target of targets) {
   await mkdir(target.directory, { recursive: true });
-  await writeFile(join(target.directory, 'SKILL.md'), target.skill, { flag: 'wx' });
+  await writeFile(join(target.directory, 'SKILL.md'), target.skill, { flag: update ? 'w' : 'wx' });
   if (target.ui) {
-    await mkdir(join(target.directory, 'agents'));
-    await writeFile(join(target.directory, 'agents/openai.yaml'), target.ui, { flag: 'wx' });
+    await mkdir(join(target.directory, 'agents'), { recursive: true });
+    await writeFile(join(target.directory, 'agents/openai.yaml'), target.ui, { flag: update ? 'w' : 'wx' });
   }
   console.log(`Installed ${target.directory}`);
 }
