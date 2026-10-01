@@ -31,7 +31,7 @@ Readback automatically selects the calling session using `CODEX_THREAD_ID` (or `
 
 Readback itself makes no model calls. Claude Code can automatically respond after a `!` command; set `"respondToBashCommands": false` in `~/.claude/settings.json` to disable that extra model turn ([Claude shell-mode docs](https://code.claude.com/docs/en/interactive-mode#shell-mode-with-prefix)). Command output still enters the conversation context. For no additional agent context or model usage, run Readback in a separate terminal.
 
-Glow uses a pager in an interactive terminal (`q` to exit). Inside an agent's captured shell, it prints the rendered Markdown without a pager. Use the browser option for a separate reading window.
+Glow opens an interactive pager in a separate macOS Terminal window when called from an agent or a captured shell. In a regular interactive terminal it uses the current terminal. Press `q` to exit the pager; Terminal may leave the finished window open, depending on its settings. The agent's permissions must allow opening Terminal. Readback resolves Glow before launching the window, so Terminal does not need a matching `PATH`.
 
 The original commands also work in a normal terminal shell, from the directory where you started the agent:
 
@@ -65,7 +65,7 @@ readback - < answer.md
 
 Use `readback -- glow` to open a file literally named `glow`.
 
-`--no-open` saves the output without launching a viewer. Each invocation writes `answer.md` and `answer.html` in a private `readback-*` directory under the system temporary directory. The output path is printed; previews remain until those temporary files are removed. There is no background server or automatic cleanup. For use without installation, replace `readback` with `node src/cli.js`; choose Glow with `--viewer glow`.
+`--no-open` saves the output without launching a viewer. Each invocation writes `answer.md` and `answer.html` in a private `readback-*` directory under the system temporary directory. The output path is printed; previews remain until those temporary files are removed. Glow also writes a private `readback-glow-*` directory containing its executable Terminal launcher. There is no background server or automatic cleanup. For use without installation, replace `readback` with `node src/cli.js`; choose Glow with `--viewer glow`.
 
 The browser view includes local CSS, highlighted code, light/dark mode, and scrollable tables and code blocks. Embedded HTML displays as text and scripts are prohibited. Images become clickable references, so opening a browser preview makes no network requests. Relative file links resolve from the temporary preview directory. Glow handles Markdown display using its own settings.
 

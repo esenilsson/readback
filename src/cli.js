@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
+import { accessSync, constants, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,8 +45,31 @@ export function openPreview(path, launch = spawnSync) {
   }
 }
 
-export function openGlow(path, launch = spawnSync, interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)) {
-  const result = launch('glow', [interactive ? '--pager' : '--pager=false', path], { stdio: 'inherit' });
+function shellQuote(value) {
+  return "'" + value.replaceAll("'", "'\"'\"'") + "'";
+}
+
+export function openGlow(path, launch = spawnSync,
+  interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY) &&
+    ![process.env.CODEX_THREAD_ID, process.env.CODEX_SESSION_ID, process.env.CLAUDE_CODE_SESSION_ID].some(Boolean),
+  { platform = process.platform, env = process.env } = {}) {
+  let result;
+  if (!interactive && platform === 'darwin') {
+    // Resolve now: a new Terminal window may have a different PATH.
+    const executable = (env.PATH || '').split(':').map(directory => resolve(directory, 'glow')).find(candidate => {
+      try { accessSync(candidate, constants.X_OK); return true; } catch { return false; }
+    });
+    if (!executable) throw new Error(`Glow is not installed. Run brew install glow. Markdown saved at: ${path}`);
+    const directory = mkdtempSync(join(tmpdir(), 'readback-glow-'));
+    const command = join(directory, 'Readback.command');
+    writeFileSync(command, `#!/bin/sh\nexec ${shellQuote(executable)} --pager ${shellQuote(resolve(path))}\n`, { mode: 0o700 });
+    result = launch('/usr/bin/open', ['-a', 'Terminal', command], { encoding: 'utf8' });
+    if (result.error || result.status !== 0) {
+      throw new Error(`Could not open Terminal for Glow (${result.error?.message || result.stderr?.trim() || `exit status ${result.status}`}). Markdown saved at: ${path}`);
+    }
+    return;
+  }
+  result = launch('glow', [interactive ? '--pager' : '--pager=false', path], { stdio: 'inherit' });
   if (result.error?.code === 'ENOENT') throw new Error(`Glow is not installed. Run brew install glow. Markdown saved at: ${path}`);
   if (result.error || result.status !== 0) {
     throw new Error(`Could not open Glow (${result.error?.message || result.signal || `exit status ${result.status}`}). Markdown saved at: ${path}`);

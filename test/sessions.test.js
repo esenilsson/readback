@@ -145,10 +145,10 @@ test('Glow receives a literal local filename, pages only interactively, and has 
       assert.deepEqual(args, [interactive ? '--pager' : '--pager=false', '/tmp/a $(not-a-command).md']);
       assert.equal(options.stdio, 'inherit');
       return { status: 0 };
-    }, interactive);
+    }, interactive, { platform: 'linux' });
   }
-  assert.throws(() => openGlow('/tmp/answer.md', () => ({ error: { code: 'ENOENT' } })), /brew install glow/);
-  assert.throws(() => openGlow('/tmp/answer.md', () => ({ status: 1 })), /Could not open Glow/);
+  assert.throws(() => openGlow('/tmp/answer.md', () => ({ error: { code: 'ENOENT' } }), true), /brew install glow/);
+  assert.throws(() => openGlow('/tmp/answer.md', () => ({ status: 1 }), true), /Could not open Glow/);
 });
 
 test('installed shell commands dispatch to both viewers and preserve argument quoting', async t => {
@@ -189,4 +189,30 @@ test('agent detection respects explicit selectors and avoids guessing between ne
   assert.equal(sessionOptions({ tool: 'claude' }, nested).session, 'claude');
   assert.equal(sessionOptions({ tool: 'codex' }, nested).session, 'current');
   assert.deepEqual(sessionOptions({ tool: 'claude' }, env), { tool: 'claude' });
+});
+
+test('captured macOS shells open a private Terminal launcher with literal arguments', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'readback-glow-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const bin = join(root, "bin with ' quotes $ and spaces");
+  await mkdir(bin);
+  await writeFile(join(bin, 'glow'), '#!/bin/sh\nprintf "%s\\n" "$@"\n', { mode: 0o700 });
+  const path = join(root, "answer ' $(exit 42).md");
+  let command;
+  openGlow(path, (program, args) => {
+    assert.equal(program, '/usr/bin/open');
+    assert.deepEqual(args.slice(0, 2), ['-a', 'Terminal']);
+    command = args[2];
+    t.after(() => rm(join(command, '..'), { recursive: true, force: true }));
+    return { status: 0 };
+  }, false, { platform: 'darwin', env: { PATH: bin } });
+  const result = spawnSync('/bin/sh', [command], { encoding: 'utf8', env: { PATH: '/usr/bin:/bin' } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `--pager\n${path}\n`);
+  assert.throws(() => openGlow(path, () => assert.fail('must not launch'), false,
+    { platform: 'darwin', env: { PATH: root } }), /brew install glow/);
+  assert.throws(() => openGlow(path, (program, args) => {
+    t.after(() => rm(join(args[2], '..'), { recursive: true, force: true }));
+    return { status: 1, stderr: 'Launch denied' };
+  }, false, { platform: 'darwin', env: { PATH: bin } }), /Could not open Terminal for Glow.*Launch denied/);
 });
